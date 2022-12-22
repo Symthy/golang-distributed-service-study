@@ -30,12 +30,12 @@ func (c *Log) Append(record LogRecord) (uint64, error) {
 	return record.Offset, nil
 }
 
-func (c *Log) Read(offset uint64) (record *LogRecord, err error) {
+func (c *Log) Read(offset uint64) (record LogRecord, err error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
 	if offset >= uint64(len(c.records)) {
-		return &LogRecord{}, ErrOffsetNotFound
+		return LogRecord{}, ErrOffsetNotFound
 	}
-	return &c.records[offset], nil
+	return c.records[offset], nil
 }

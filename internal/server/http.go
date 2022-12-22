@@ -10,8 +10,8 @@ import (
 func NewHttpServer(addr string) *http.Server {
 	httpsrv := newHttpServer()
 	router := mux.NewRouter()
-	router.HandleFunc("/", httpsrv.handleProduce).Methods("Post")
-	router.HandleFunc("/", httpsrv.handleProduce).Methods("GET")
+	router.HandleFunc("/", httpsrv.handleProduce).Methods("POST")
+	router.HandleFunc("/", httpsrv.handleConsume).Methods("GET")
 	return &http.Server{
 		Addr:    addr,
 		Handler: router,
@@ -41,17 +41,14 @@ type ConsumeRequest struct {
 }
 
 type ConsumeResponse struct {
-	Record *LogRecord `json:"record"`
+	Record LogRecord `json:"record"`
 }
 
 func (s *httpServer) handleProduce(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	var req ProduceRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
+	parseRequest(w, r, &req)
 
 	offset, err := s.Log.Append(req.Record)
 	if err != nil {
@@ -59,21 +56,14 @@ func (s *httpServer) handleProduce(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := ProduceResponse{Offset: offset}
-	err = json.NewEncoder(w).Encode(res)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	parseResponse(w, r, &res)
 }
 
 func (s *httpServer) handleConsume(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	var req ConsumeRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
+	parseRequest(w, r, &req)
 
 	record, err := s.Log.Read(req.Offset)
 	if err == ErrOffsetNotFound {
@@ -85,7 +75,18 @@ func (s *httpServer) handleConsume(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := ConsumeResponse{Record: record}
-	err = json.NewEncoder(w).Encode(res)
+	parseResponse(w, r, &res)
+}
+
+func parseRequest[T ProduceRequest | ConsumeRequest](w http.ResponseWriter, r *http.Request, req *T) {
+	err := json.NewDecoder(r.Body).Decode(req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+}
+
+func parseResponse[T ProduceResponse | ConsumeResponse](w http.ResponseWriter, r *http.Request, res *T) {
+	err := json.NewEncoder(w).Encode(res)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

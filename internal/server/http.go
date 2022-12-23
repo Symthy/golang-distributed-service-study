@@ -48,7 +48,7 @@ func (s *httpServer) handleProduce(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	var req ProduceRequest
-	parseRequest(w, r, &req)
+	resolveRequest(w, r, &req)
 
 	offset, err := s.Log.Append(req.Record)
 	if err != nil {
@@ -56,14 +56,14 @@ func (s *httpServer) handleProduce(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := ProduceResponse{Offset: offset}
-	parseResponse(w, r, &res)
+	resolveResponse(w, r, &res)
 }
 
 func (s *httpServer) handleConsume(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	var req ConsumeRequest
-	parseRequest(w, r, &req)
+	resolveRequest(w, r, &req)
 
 	record, err := s.Log.Read(req.Offset)
 	if err == ErrOffsetNotFound {
@@ -75,17 +75,18 @@ func (s *httpServer) handleConsume(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := ConsumeResponse{Record: record}
-	parseResponse(w, r, &res)
+	resolveResponse(w, r, &res)
 }
 
-func parseRequest[T ProduceRequest | ConsumeRequest](w http.ResponseWriter, r *http.Request, req *T) {
+func resolveRequest[T ProduceRequest | ConsumeRequest](w http.ResponseWriter, r *http.Request, req *T) {
 	err := json.NewDecoder(r.Body).Decode(req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 }
 
-func parseResponse[T ProduceResponse | ConsumeResponse](w http.ResponseWriter, r *http.Request, res *T) {
+func resolveResponse[T ProduceResponse | ConsumeResponse](w http.ResponseWriter, r *http.Request, res *T) {
+	w.Header().Add("Content-Type", "application/json")
 	err := json.NewEncoder(w).Encode(res)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

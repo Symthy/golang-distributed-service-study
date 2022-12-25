@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/Symthy/golang-distributed-service-study/internal/server"
+	"github.com/Symthy/golang-distributed-service-study/internal/http/server"
 	"github.com/gavv/httpexpect/v2"
 	"github.com/stretchr/testify/suite"
 )

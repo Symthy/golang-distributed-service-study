@@ -22,6 +22,16 @@ var (
 	unknwonError = fmt.Errorf("dummy error")
 )
 
+type MockedLogForErrorCase struct {
+}
+
+func (*MockedLogForErrorCase) Append(record LogRecord) (uint64, error) {
+	return 0, unknwonError
+}
+func (*MockedLogForErrorCase) Read(offset uint64) (LogRecord, error) {
+	return LogRecord{}, unknwonError
+}
+
 func executeComsumeHandler(t *testing.T, srv *httpServer, input ConsumeRequest, rr *httptest.ResponseRecorder) {
 	reqJson, err := json.Marshal(input)
 	if err != nil {
@@ -82,16 +92,6 @@ func TestHandleConsumeSuccess(t *testing.T) {
 			assert.Equal(t, string(expected), actual)
 		})
 	}
-}
-
-type MockedLogForErrorCase struct {
-}
-
-func (*MockedLogForErrorCase) Append(record LogRecord) (uint64, error) {
-	return 0, unknwonError
-}
-func (*MockedLogForErrorCase) Read(offset uint64) (LogRecord, error) {
-	return LogRecord{}, unknwonError
 }
 
 func TestHandleConsumeFailure(t *testing.T) {

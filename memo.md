@@ -9,8 +9,93 @@ curl -X GET localhost:8080 -d '{"offset": 1}'
 curl -X GET localhost:8080 -d '{"offset": 2}'
 ```
 
-e2e
+## e2e テスト
 
 - httpexpect を使う： [Go でサーバのエンドツーエンドテストを行う方法](https://note.com/navitime_tech/n/ne935de0d34c9)
   - https://github.com/gavv/httpexpect
 - 自力で書く： [Go でサーバを立ち上げて E2E テストを実施する CI 用のテストコードを書く](https://budougumi0617.github.io/2020/03/27/http-test-in-go/)
+
+```go
+type e2eTestSuite struct {
+	suite.Suite
+	srv *http.Server
+}
+
+func (s *e2eTestSuite) SetupSuite() {
+	s.srv = server.NewHttpServer(":8080")
+}
+
+func (s *e2eTestSuite) SetupTest() {
+	// 動的にポートを選択するので並行テストが可能。
+	l, err := net.Listen("tcp", ":8080")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	idleConnsClosed := make(chan struct{})
+	go func() {
+		fmt.Println("server run")
+		if err := s.srv.Serve(l); err != http.ErrServerClosed {
+			s.T().Fatalf("HTTP server ListenAndServe: %v", err)
+		}
+		// サーバが終了したことを通知。
+		close(idleConnsClosed)
+	}()
+}
+
+func (s *e2eTestSuite) TearDownSuite() {
+	fmt.Println("server shutdown")
+	if err := s.srv.Shutdown(context.Background()); err != nil {
+		s.T().Fatalf("HTTP server Shutdown: %v", err)
+	}
+}
+
+func (s *e2eTestSuite) TestXXX() {
+  // api 実行 & 検証
+}
+```
+
+## protobuf (プロトコルバッファ)
+
+特徴（protobuf を使う理由）
+
+- 一貫性のあるスキーマ
+
+  - 例：structs と呼ぶリポジトリに protobuf とそのコンパイル済みコードを格納し、全サービスがそれに依存するようにすることで一貫性を保証
+
+- バージョン管理
+
+  - バージョン検査の必要性なし
+  - 新機能や変更を行う際の後方互換性を保証（新フィールドの追加容易、削除も可能）
+  - 削除されたフィールドを予約済み（reserved）としてマークすれば、そのフィールドを使えないようにもできる（使おうとしてもコンパイルエラーになる）
+
+- ボイラープレートコードの削除
+
+  - protobuf がエンコード、デコードを行うため、そのためのコードを手書きする必要がない
+
+- 拡張性
+
+  - protobuf コンパイラに、独自のロジックを挿入できる拡張機能をサポート
+  - 例：いくつかの構造体に共通メソッドを持たせたい時に自動的に生成するプラグインを書ける
+
+- 言語寛容性
+
+  - 異なる言語で書かれたサービス間の通信に余計な手間をかける必要がない
+
+- パフォーマンス
+  - パフォーマンスが高い
+  - データ量が小さい
+  - JSON に比べて最大 6 倍の速さでシリアライズできる
+
+### インストール
+
+参考
+
+- [Protocol Buffers: ざっくりとした入門](https://qiita.com/nozmiz/items/fdbd052c19dad28ab067)
+- https://developers.google.com/protocol-buffers/docs/reference/go-generated
+
+### 自動生成コマンド
+
+```
+protoc api/v1/*.proto --go_out=. --go_opt=paths=source_relative --proto_path=.
+```

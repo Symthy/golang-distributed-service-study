@@ -106,14 +106,6 @@ func (s *e2eTestSuite) TestGetAndPostSuccess() {
 			Object()
 		r.Equal(server.ConsumeResponse{Record: record3})
 	})
-	s.T().Run("GET 3", func(t *testing.T) {
-		r := e.GET("/").WithJSON(server.ConsumeRequest{Offset: 2}).
-			Expect().
-			Status(http.StatusOK).
-			JSON().
-			Object()
-		r.Equal(server.ConsumeResponse{Record: record3})
-	})
 }
 
 func TestE2ETestSuite(t *testing.T) {

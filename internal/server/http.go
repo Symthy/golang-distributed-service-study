@@ -19,12 +19,18 @@ func NewHttpServer(addr string) *http.Server {
 }
 
 type httpServer struct {
-	Log *Log
+	log Store
 }
 
 func newHttpServer() *httpServer {
 	return &httpServer{
-		Log: NewLog(),
+		log: NewLog(),
+	}
+}
+
+func newHttpServerWithLog(log Store) *httpServer {
+	return &httpServer{
+		log: log,
 	}
 }
 
@@ -50,9 +56,10 @@ func (s *httpServer) handleProduce(w http.ResponseWriter, r *http.Request) {
 	var req ProduceRequest
 	resolveRequest(w, r, &req)
 
-	offset, err := s.Log.Append(req.Record)
+	offset, err := s.log.Append(req.Record)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	res := ProduceResponse{Offset: offset}
@@ -65,13 +72,14 @@ func (s *httpServer) handleConsume(w http.ResponseWriter, r *http.Request) {
 	var req ConsumeRequest
 	resolveRequest(w, r, &req)
 
-	record, err := s.Log.Read(req.Offset)
+	record, err := s.log.Read(req.Offset)
 	if err == ErrOffsetNotFound {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	res := ConsumeResponse{Record: record}

@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/Symthy/golang-distributed-service-study/internal/server"
+	"github.com/Symthy/golang-distributed-service-study/internal/http/server"
 )
 
 func main() {

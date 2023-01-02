@@ -1,10 +1,18 @@
-.PHONY: clean autogen build run list test testv e2e
+.PHONY: clean autogen lint build run list test testv e2e
 
 clean:
 	rm -f bin/*
 
 autogen:
-	protoc api/v1/*.proto --go_out=. --go_opt=paths=source_relative --proto_path=.
+	protoc api/v1/*.proto \
+		--go_out=. \
+		--go-grpc_out=. \
+		--go_opt=paths=source_relative \
+		--go-grpc_opt=paths=source_relative \
+		--proto_path=.
+
+lint:
+	gofmt -l -s -w .
 
 build:
 	go build -o ./bin/main.exe cmd/server/main.go

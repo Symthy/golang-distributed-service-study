@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	offWidth uint64 = 4
-	posWidth uint64 = 8
-	entWidth        = offWidth + posWidth
+	offWidth   uint64 = 4
+	posWidth   uint64 = 8
+	entryWidth        = offWidth + posWidth
 )
 
 type index struct {
@@ -51,33 +51,39 @@ func (i *index) Write(off uint32, pos uint64) error {
 		return io.EOF
 	}
 	enc.PutUint32(i.mmap[i.size:i.size+offWidth], off)
-	enc.PutUint64(i.mmap[i.size+offWidth:i.size+entWidth], pos)
-	i.size += uint64(entWidth)
+	enc.PutUint64(i.mmap[i.size+offWidth:i.size+entryWidth], pos)
+	i.size += uint64(entryWidth)
 	return nil
 }
 
 func (i *index) isMaxed() bool {
-	return uint64(len(i.mmap)) < i.size+entWidth
+	return uint64(len(i.mmap)) < i.size+entryWidth
 }
 
-func (i *index) Read(inOffset int64) (out uint32, pos uint64, err error) {
+func (i *index) Read(offset uint32) (out uint32, pos uint64, err error) {
 	if i.size == 0 {
 		return 0, 0, io.EOF
 	}
-	offset := uint32(0)
-	if inOffset == -1 {
-		offset = uint32((i.size / entWidth) - 1) // 末尾取得
-	} else {
-		offset = uint32(inOffset)
-	}
-	fmt.Printf("offset: %v\n", offset)
-	pos = uint64(offset) * entWidth
-	if i.size < pos+entWidth {
+	out, pos, err = i.readEntry(uint32(offset))
+	return
+}
+
+func (i *index) ReadLast() (out uint32, pos uint64, err error) {
+	if i.size == 0 {
 		return 0, 0, io.EOF
 	}
+	offset := uint32((i.size / entryWidth) - 1) // 末尾取得
+	out, pos, err = i.readEntry(offset)
+	return
+}
 
-	out = enc.Uint32(i.mmap[pos : pos+offWidth])
-	pos = enc.Uint64(i.mmap[pos+offWidth : pos+entWidth])
+func (i *index) readEntry(offset uint32) (out uint32, pos uint64, err error) {
+	entryTopPos := uint64(offset) * entryWidth
+	if i.size < entryTopPos+entryWidth {
+		return 0, 0, io.EOF
+	}
+	out = enc.Uint32(i.mmap[entryTopPos : entryTopPos+offWidth])
+	pos = enc.Uint64(i.mmap[entryTopPos+offWidth : entryTopPos+entryWidth])
 	return out, pos, nil
 }
 

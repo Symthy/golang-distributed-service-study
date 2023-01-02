@@ -19,7 +19,7 @@ func TestIndex(t *testing.T) {
 	idx, err := newIndex(f, c)
 	require.NoError(t, err)
 
-	_, _, err = idx.Read(-1)
+	_, _, err = idx.ReadLast()
 	require.Error(t, err)
 	require.Equal(t, f.Name(), idx.Name())
 
@@ -33,14 +33,14 @@ func TestIndex(t *testing.T) {
 	for _, tt := range entries {
 		err = idx.Write(tt.Off, tt.Pos)
 		require.NoError(t, err)
-		off, pos, err := idx.Read(int64(tt.Off))
+		off, pos, err := idx.Read(uint32(tt.Off))
 		require.NoError(t, err)
 		require.Equal(t, tt.Off, off)
 		require.Equal(t, tt.Pos, pos)
 	}
 
 	t.Run("out of index", func(t *testing.T) {
-		_, _, err := idx.Read(int64(len(entries)))
+		_, _, err := idx.Read(uint32(len(entries)))
 		require.Equal(t, io.EOF, err)
 	})
 	err = idx.Close()
@@ -50,7 +50,7 @@ func TestIndex(t *testing.T) {
 		f, _ = os.OpenFile(f.Name(), os.O_RDWR, 0600)
 		idx, err = newIndex(f, c)
 		require.NoError(t, err)
-		off, pos, err := idx.Read(-1)
+		off, pos, err := idx.ReadLast()
 		require.NoError(t, err)
 		require.Equal(t, entries[1].Off, off)
 		require.Equal(t, entries[1].Pos, pos)

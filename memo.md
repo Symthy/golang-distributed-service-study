@@ -9,9 +9,28 @@ curl -X GET localhost:8080 -d '{"offset": 1}'
 curl -X GET localhost:8080 -d '{"offset": 2}'
 ```
 
-## os.File
+## ファイル操作
+
+[Golang でファイルの読み込みを行う方法３選！](https://asapoon.com/article/golang-post/4869/golang-reading-file-example)
+
+- ioutil, bufio, os
+
+### os.File
 
 [Go 言語の os パッケージにある File 型を使ってみる (2) ： os.File のメソッド](https://waman.hatenablog.com/entry/2017/10/04/070228)
+
+Read：
+
+- `n, err := f.Read(buf)`：引数に渡した容量だけ読み込む
+- `n, err := f.ReadAt(buf, 9)` 第 2 引数の位置から、容量分だけ読み込む
+
+Truncate:
+
+- ファイルの内容を指定サイズに切り詰める
+
+### gommap.MMap
+
+メモリマップドファイル（ファイルマッピング）とは、ファイルをメモリ内に読み込んで、アプリケーションのアドレス空間の連続するブロックとしてファイルを操作する機能のことです。 この機能を使うと、ファイルの読み書きは適切なメモリ位置にアクセスするだけで済む
 
 ## テスト
 

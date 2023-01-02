@@ -87,12 +87,19 @@ func (s *store) ReadAt(p []byte, offset int64) (int, error) {
 	return s.File.ReadAt(p, offset)
 }
 
-func (s *store) Close() error {
+func (s *store) Flush() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	err := s.buf.Flush()
 	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *store) Close() error {
+	if err := s.Flush(); err != nil {
 		return err
 	}
 	return s.File.Close()

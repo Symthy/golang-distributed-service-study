@@ -95,12 +95,19 @@ func (i *index) empty() bool {
 	return true
 }
 
-func (i *index) Close() error {
+func (i *index) Flush() error {
 	if err := i.mmap.Sync(gommap.MS_ASYNC); err != nil {
 		return fmt.Errorf("mmap sync error: %v", err)
 	}
 	if err := i.file.Sync(); err != nil {
 		return fmt.Errorf("file sync error: %v", err)
+	}
+	return nil
+}
+
+func (i *index) Close() error {
+	if err := i.Flush(); err != nil {
+		return err
 	}
 	// メモリ解放しないと file.Truncate() で以下エラーが発生する（Windows 特有の事象かもしれない…）
 	// The requested operation cannot be performed on a file with a user-mapped section open.

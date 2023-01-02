@@ -92,6 +92,16 @@ func (s *segment) Read(offset uint64) (*api.Record, error) {
 	return record, err
 }
 
+func (s *segment) Flush() error {
+	if err := s.index.Flush(); err != nil {
+		return err
+	}
+	if err := s.store.Flush(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *segment) Close() error {
 	if err := s.index.Close(); err != nil {
 		return err

@@ -87,6 +87,14 @@ func (i *index) readEntry(offset uint32) (out uint32, pos uint64, err error) {
 	return out, pos, nil
 }
 
+func (i *index) empty() bool {
+	_, _, err := i.ReadLast()
+	if err != nil {
+		return false
+	}
+	return true
+}
+
 func (i *index) Close() error {
 	if err := i.mmap.Sync(gommap.MS_ASYNC); err != nil {
 		return fmt.Errorf("mmap sync error: %v", err)

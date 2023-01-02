@@ -9,6 +9,26 @@ curl -X GET localhost:8080 -d '{"offset": 1}'
 curl -X GET localhost:8080 -d '{"offset": 2}'
 ```
 
+## os.File
+
+[Go 言語の os パッケージにある File 型を使ってみる (2) ： os.File のメソッド](https://waman.hatenablog.com/entry/2017/10/04/070228)
+
+## テスト
+
+- require.NoError()
+
+require ：途中で Fail したらそこでテスト関数を抜ける → 前提の確認に使うのが良さそう
+
+assert ：途中で Fail してもテストは続行する → 目的のテストを行うのが良さそう
+
+ref: [Go で Testify でテストする際の assert と require の違い](https://qiita.com/ysti/items/a987c627d7a5e5cf32ec)
+
+- t.Helper()
+
+ヘルパー関数としてマークできる
+
+ref: [Go のテストでヘルパー関数に t.Helper() を忘れない](https://qiita.com/ichiban@github/items/b5f8e5c7e00c85cb5ca7)
+
 ## e2e テスト
 
 - httpexpect を使う： [Go でサーバのエンドツーエンドテストを行う方法](https://note.com/navitime_tech/n/ne935de0d34c9)

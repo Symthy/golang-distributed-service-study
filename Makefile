@@ -1,4 +1,4 @@
-.PHONY: clean autogen build run list test e2e
+.PHONY: clean autogen build run list test testv e2e
 
 clean:
 	rm -f bin/*
@@ -17,6 +17,9 @@ list:
 
 test:
 	go test `go list ./... | grep -v ./e2e`
+
+testv:
+	go test -v `go list ./... | grep -v ./e2e`
 
 e2e:
 	go test -race ./e2e/...

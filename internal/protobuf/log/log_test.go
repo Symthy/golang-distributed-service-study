@@ -1,6 +1,7 @@
 package log
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"testing"
@@ -56,7 +57,10 @@ func testAppendRead(t *testing.T, log *Log) {
 func testOutOfRangeErr(t *testing.T, log *Log) {
 	readdata, err := log.Read(1)
 	require.Nil(t, readdata)
-	require.Error(t, err)
+	require.ErrorAs(t, err, &api.ErrOffsetOutOfRange{})
+	apiErr := err.(api.ErrOffsetOutOfRange)
+	fmt.Printf("apiErr: %v", apiErr)
+	require.Equal(t, uint64(1), apiErr.Offset)
 }
 
 func testNewExisting(t *testing.T, log *Log) {

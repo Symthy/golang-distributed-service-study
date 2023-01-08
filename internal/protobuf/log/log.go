@@ -12,6 +12,16 @@ import (
 	"github.com/Symthy/golang-distributed-service-study/internal/collections"
 )
 
+type CommitLog interface {
+	Append(record *api.Record) (uint64, error)
+	Read(offset uint64) (*api.Record, error)
+	Flush() error
+	Close() error
+	Remove() error
+	Truncate(lowest uint64) error
+	Reader() io.Reader
+}
+
 type Log struct {
 	mu            sync.RWMutex
 	dir           string
@@ -120,7 +130,7 @@ func (l *Log) Read(offset uint64) (*api.Record, error) {
 
 	s := l.getSegmentIfContains(offset)
 	if s == nil || s.nextOffset <= offset {
-		return nil, api.NewErrOffsetOutOfRange(offset)
+		return nil, api.ErrOffsetOutOfRange{Offset: offset}
 	}
 	return s.Read(offset)
 }

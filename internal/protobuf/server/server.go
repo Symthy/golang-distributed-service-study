@@ -5,10 +5,11 @@ import (
 
 	api "github.com/Symthy/golang-distributed-service-study/api/v1"
 	"github.com/Symthy/golang-distributed-service-study/internal/protobuf/log"
+	"google.golang.org/grpc"
 )
 
 type Config struct {
-	CommitLog log.Log
+	CommitLog log.CommitLog
 }
 
 type grpcServer struct {
@@ -23,6 +24,16 @@ func newGrpcServer(config *Config) (*grpcServer, error) {
 		Config: config,
 	}
 	return srv, nil
+}
+
+func NewGRPCServer(config *Config) (*grpc.Server, error) {
+	gsrv := grpc.NewServer()
+	srv, err := newGrpcServer(config)
+	if err != nil {
+		return nil, err
+	}
+	api.RegisterLogServer(gsrv, srv)
+	return gsrv, nil
 }
 
 func (s *grpcServer) Produce(ctx context.Context, req *api.ProduceRequest) (*api.ProduceResponse, error) {

@@ -31,3 +31,20 @@ testv:
 
 e2e:
 	go test -race ./e2e/...
+
+## ssl
+CONFIG_PATH=${HOME}/.proglog/
+.PHONY: init gencert
+
+init: 
+	mkdir -p ${CONFIG_PATH}
+
+gencert: 
+	cfssl gencert \
+		-initca test/ca-csr.json | cfssljson -bare ca
+	cfssl gencert \
+		-ca=ca.pem \
+		-ca-key=ca-key.pem \
+		-config=test/auth/ca-config.json \
+		-profile=server test/auth/server-csr.json | cfssljson -bare server
+	mv *.pem *csr ${CONFIG_PATH}

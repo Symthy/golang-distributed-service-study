@@ -138,3 +138,103 @@ func (s *e2eTestSuite) TestXXX() {
 ```
 protoc api/v1/*.proto --go_out=. --go_opt=paths=source_relative --proto_path=.
 ```
+
+## 認証/TLS/CFSSL
+
+社内サービスであれば第三者機関のを経由する必要はない
+
+信頼できる証明書は、自分で運営する CA から発行可能であり、適切なツールがあれば容易に利用可能
+
+CFSSL
+
+- CloudFlare が開発した、TLS 証明書を署名、検証、バンドルするためのツールキット。主要な CA ベンダー含め広く使われている
+- cfssl：TLS 証明書を署名、検証、バンドルし、JSON として出力
+- cfssljson：JSON 出力を受け取り、鍵、証明書、CSR、バンドルのファイルに分割
+- CA 初期化し証明書を生成するには、cfssl コマンドに様々な設定ファイルを渡す必要がある
+
+### インストール
+
+```
+go install github.com/cloudflare/cfssl/cmd/cfssl
+go install github.com/cloudflare/cfssl/cmd/cfssljson
+```
+
+### 設定ファイル
+
+項目
+
+- CN：Common Name
+- C: 国（country）
+- L：地域（locally）や自治体（市など）
+- ST：州（state）や権
+- O：組織（organization）
+- OU：組織単位（organizational unit、鍵の所有権を持つ部署など）
+
+cs-csr.json：CA の証明書を設定
+
+ca-config.json：CA のポリシーを定義（signing：CA の署名ポリシー定義）
+
+server-csr.json：サーバの証明書を設定
+
+### ファイル
+
+- .key：秘密鍵ファイル
+- .csr：秘密鍵を元に作った公開鍵ファイルにコモンネームなどの情報を付加したもの
+- .crt：↑ の CSR ファイルが正しいかを SSL 証明書会社が証明しているもの。サーバー証明書
+- .cer：中間証明書。CSR ファイルと CRT ファイルの仲介役的なもの。なくても動いたりするブラウザもあるが基本的に SSL 化するサーバーには必要
+
+### コード
+
+```go
+import (
+	"crypto/tls"
+	"crypto/x509"
+	"fmt"
+	"os"
+)
+
+type TLSConfig struct {
+	CertFile      string
+	KeyFile       string
+	CAFile        string
+	ServerAddress string
+	Server        bool
+}
+
+func SetupTlsConfig(cfg TLSConfig) (*tls.Config, error) {
+	tlsConfig := &tls.Config{MinVersion: tls.VersionTLS13}
+	if cfg.CertFile != "" && cfg.KeyFile != "" {
+		var err error
+		tlsConfig.Certificates = make([]tls.Certificate, 1)
+		tlsConfig.Certificates[0], err = tls.LoadX509KeyPair(cfg.CertFile, cfg.KeyFile)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if cfg.CAFile != "" {
+		b, err := os.ReadFile(cfg.CAFile)
+		if err != nil {
+			return nil, err
+		}
+		ca := x509.NewCertPool()
+		if !ca.AppendCertsFromPEM(b) {
+			return nil, fmt.Errorf("failed to parse root certificate: %q", cfg.CAFile)
+		}
+
+		if cfg.Server {
+			// ClientCAs とCertificates を設定＋RequireAndVerifyClientCertを設定することで
+			// クライアント証明書を検証し、クライアントがサーバの証明書を検証できるように設定される
+			tlsConfig.ClientCAs = ca
+			tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+		} else {
+			// クライアントのtlsConfig にRootCAsを設定することで、
+			// サーバの証明書とクライアントの証明書を検証できるよう設定される
+			// RootCAs と Certificates の2つを設定すれば
+			// サーバの証明書を検証し、サーバがクライアントの証明書を検証できるよう設定される
+			tlsConfig.RootCAs = ca
+		}
+	}
+	return tlsConfig, nil
+}
+```

@@ -295,3 +295,13 @@ func setupTest(t *testing.T, fn func(*Config)) (client api.LogClient, cfg *Confi
 		clog.Remove()
 	}
 ```
+
+## 認可（ACL）
+
+とある特定の条件に対して、リソースアクセスの権限を与えること。ref:[よくわかる認証と認可](https://dev.classmethod.jp/articles/authentication-and-authorization/)
+
+クライアントの背後に誰がいるのかを知るために認証を行い、その人が行おうとしていることを認可する＝認証処理
+
+ACL（アクセス・コントロール・リスト）：認可を実装するもっとも簡単な方法
+
+Casbin：https://casbin.org/ja/docs/get-started

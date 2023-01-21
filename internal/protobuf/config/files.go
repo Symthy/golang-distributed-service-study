@@ -6,20 +6,24 @@ import (
 )
 
 var (
-	CAFile         = configFile("ca.pem")
-	ServerCertFile = configFile("server.pem")
-	ServerKeyFile  = configFile("server.key.pem")
-	ClientCertFile = configFile("client.key.pem")
-	ClientKeyFile  = configFile("client.pem")
+	CAFile               = configFile("ca.pem")
+	ServerCertFile       = configFile("server.pem")
+	ServerKeyFile        = configFile("server.key.pem")
+	RootClientCertFile   = configFile("root-client.key.pem")
+	RootClientKeyFile    = configFile("root-client.pem")
+	NobodyClientCertFile = configFile("nobody-client.key.pem")
+	NobodyClientKeyFile  = configFile("nobody-client.key.pem")
+	ACLModelFile         = configFile("model.conf")
+	ACLPolicyFile        = configFile("policy.csv")
 )
 
 func configFile(filename string) string {
 	if dir := os.Getenv("CONFIG_DIR"); dir != "" {
 		return configFile(filepath.Join(dir, filename))
 	}
-	homeDir, err := os.UserHomeDir()
+	workingDir, err := os.Getwd()
 	if err != nil {
 		panic(err)
 	}
-	return configFile(filepath.Join(homeDir, ".proglog", filename))
+	return configFile(filepath.Join(workingDir, ".proglog", filename))
 }

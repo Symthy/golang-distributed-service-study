@@ -4,12 +4,22 @@ import (
 	"context"
 
 	api "github.com/Symthy/golang-distributed-service-study/api/v1"
+
 	"github.com/Symthy/golang-distributed-service-study/internal/protobuf/log"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	"google.golang.org/grpc"
 )
 
+const (
+	objectWildcard = "*"
+	produceAction  = "produce"
+	consumeAction  = "consume"
+)
+
 type Config struct {
-	CommitLog log.CommitLog
+	CommitLog  log.CommitLog
+	Authorizer Authorizer
 }
 
 type grpcServer struct {
@@ -27,6 +37,18 @@ func newGrpcServer(config *Config) (*grpcServer, error) {
 }
 
 func NewGRPCServer(config *Config, grpcOpts ...grpc.ServerOption) (*grpc.Server, error) {
+	// authorizerセット
+	grpcOpts = append(grpcOpts,
+		grpc.StreamInterceptor(
+			grpc_middleware.ChainStreamServer(
+				grpc_auth.StreamServerInterceptor(authenticate),
+			)),
+		grpc.UnaryInterceptor(
+			grpc_middleware.ChainUnaryServer(
+				grpc_auth.UnaryServerInterceptor(authenticate),
+			)),
+	)
+
 	gsrv := grpc.NewServer(grpcOpts...)
 	srv, err := newGrpcServer(config)
 	if err != nil {
@@ -37,6 +59,12 @@ func NewGRPCServer(config *Config, grpcOpts ...grpc.ServerOption) (*grpc.Server,
 }
 
 func (s *grpcServer) Produce(ctx context.Context, req *api.ProduceRequest) (*api.ProduceResponse, error) {
+	if err := s.Authorizer.Authorize(
+		subject(ctx), objectWildcard, produceAction,
+	); err != nil {
+		return nil, err
+	}
+
 	offset, err := s.CommitLog.Append(req.Record)
 	if err != nil {
 		return nil, err
@@ -45,6 +73,12 @@ func (s *grpcServer) Produce(ctx context.Context, req *api.ProduceRequest) (*api
 }
 
 func (s *grpcServer) Consume(ctx context.Context, req *api.ConsumeRequest) (*api.ConsumeResponse, error) {
+	if err := s.Authorizer.Authorize(
+		subject(ctx), objectWildcard, consumeAction,
+	); err != nil {
+		return nil, err
+	}
+
 	record, err := s.CommitLog.Read(req.Offset)
 	if err != nil {
 		return nil, err
